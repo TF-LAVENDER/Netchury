@@ -107,7 +107,7 @@ Library: PyInstaller- 코드 모듈을 패키징할 때 사용하였습니다.
 | 역할 | 이름 |
 |------|------|
 | Project Manager / Developer / Designer | [김정현](https://github.com/vlsvita) |
-| Developer | [유을](https://github.com/skwo27) |
+| Co-Project Manager / Developer | [유을](https://github.com/skwo27) |
 | Planner | [김현준](https://github.com/insu6322) |
 | Developer | [임현우](https://github.com/imhyeonu826) |
 | Developer | [심서훈](https://github.com/Simseoh) |
