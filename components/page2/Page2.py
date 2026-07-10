@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QWidget, QTableView, QHeaderView
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 from components.page2.sub.NetworkPopup import NetworkPopup
 from util.daemon.daemon import page3_instance
-from utils import load_ui_file, resource_path
+from utils import IS_WINDOWS, load_ui_file, resource_path
 import subprocess
 import ipaddress
 
@@ -37,7 +37,10 @@ class Page2(QWidget):
         self.ui.blockedTableView.setEditTriggers(QTableView.NoEditTriggers)
 
         self.ui.blockedTableView.horizontalHeader().setSectionResizeMode(QHeaderView.Fixed)
-        self.ui.blockedTableView.horizontalHeader().setFixedHeight(30)
+        header_height = 30
+        if IS_WINDOWS:
+            header_height = max(header_height, self.ui.blockedTableView.fontMetrics().height() + 10)
+        self.ui.blockedTableView.horizontalHeader().setFixedHeight(header_height)
         self.ui.blockedTableView.setColumnWidth(0, 45)
         self.ui.blockedTableView.setColumnWidth(1, 75)
         self.ui.blockedTableView.setColumnWidth(2, 75)
@@ -212,7 +215,6 @@ class Page2(QWidget):
 def get_pfctl_rules_file():
     """macOS 방화벽 규칙 파일 경로 반환"""
     return "/tmp/netchury_rules.pf"
-
 def add_firewall_rule(port, ip_address=None, protocol="TCP"):
     """
     macOS 방화벽 규칙 추가 (CIDR 지원)
@@ -275,7 +277,6 @@ def delete_firewall_rule(port, ip_address=None, protocol="TCP"):
     """
     macOS 방화벽 규칙 삭제 (CIDR 지원)
     """
-    
     # 프로토콜 변환 (TCP -> tcp, UDP -> udp)
     proto = protocol.lower()
     port_clause = "" if not port or port == "*" else f" port {port}"

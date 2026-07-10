@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from PySide6.QtWidgets import QWidget, QTableView, QHeaderView
 from PySide6.QtGui import QStandardItemModel, QStandardItem
-from utils import load_ui_file, resource_path
+from utils import IS_WINDOWS, load_ui_file, resource_path
 
 class Page3(QWidget):
     def __init__(self):
@@ -20,7 +20,10 @@ class Page3(QWidget):
         # 테이블 뷰 설정
         self.ui.logsTableView.setModel(self.model_logs)
         self.ui.logsTableView.horizontalHeader().setSectionResizeMode(QHeaderView.Fixed)
-        self.ui.logsTableView.horizontalHeader().setFixedHeight(30)
+        header_height = 30
+        if IS_WINDOWS:
+            header_height = max(header_height, self.ui.logsTableView.fontMetrics().height() + 16)
+        self.ui.logsTableView.horizontalHeader().setFixedHeight(header_height)
         self.ui.logsTableView.verticalHeader().hide()
 
         # 컬럼 너비 설정

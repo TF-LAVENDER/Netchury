@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt
 from components.page1.Page1 import Page1
 from components.page2.Page2 import Page2
 from components.page3.Page3 import Page3
-from utils import load_ui_file, resource_path
+from utils import configure_application, load_ui_file, resource_path
 from util.daemon.daemon import daemon, network_daemon, page3_instance
 import util.daemon.daemon as daemon_module
 
@@ -137,6 +137,7 @@ class MainWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    configure_application(app)
     window = MainWindow()
     daemon.start()
     network_daemon.start()
