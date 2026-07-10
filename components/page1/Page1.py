@@ -1,10 +1,12 @@
 # Page1.py
 
+import sys
+
 import psutil
-from PySide6.QtGui import QPen, QColor,QBrush, QPainter
+from PySide6.QtGui import QPen, QColor,QBrush, QPainter, QPainterPath, QRegion
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QToolTip
 from PySide6.QtCharts import QChart, QChartView, QSplineSeries
-from PySide6.QtCore import QTimer, QPointF, QMargins, QPropertyAnimation, QEasingCurve
+from PySide6.QtCore import QTimer, QPointF, QMargins, QPropertyAnimation, QEasingCurve, QRectF
 
 from utils import load_ui_file, resource_path
 
@@ -68,6 +70,7 @@ class Page1(QWidget):
         self.ui.right_radius_mask.setStyleSheet(f"border-image: url('{resource_path('components/page1/images/right_radius_mask.png')}');")
         self.ui.recv_vector.setStyleSheet(f"border-image: url('{resource_path('components/page1/images/recv_vector.png')}');")
         self.ui.send_vector.setStyleSheet(f"border-image: url('{resource_path('components/page1/images/send_vector.png')}');")
+        self.configure_windows_progress_mask()
 
         self.chart_view.setStyleSheet("background: transparent; border: none; margin: 0; padding: 0;")
         self.chart_view.setContentsMargins(0, 0, 0, 0)
@@ -101,6 +104,22 @@ class Page1(QWidget):
                 new_layout.setContentsMargins(0, 0, 0, 0)
                 new_layout.setSpacing(0)
                 new_layout.addWidget(self.chart_view)
+
+    def configure_windows_progress_mask(self):
+        """Clip the thick progress bar on Windows without changing macOS."""
+        if not sys.platform.startswith("win"):
+            return
+
+        progress_bar = self.ui.recv_send_ratio
+        radius = progress_bar.height() / 2
+        clip_path = QPainterPath()
+        clip_path.addRoundedRect(QRectF(progress_bar.rect()), radius, radius)
+        progress_bar.setMask(QRegion(clip_path.toFillPolygon().toPolygon()))
+
+        # Keep the existing transparent PNG masks above the clipped widget. They
+        # smooth the integer QRegion edge and preserve the current macOS design.
+        self.ui.left_radius_mask.raise_()
+        self.ui.right_radius_mask.raise_()
 
     def get_network_bytes(self):
         counters = psutil.net_io_counters()
@@ -297,4 +316,3 @@ class Page1(QWidget):
                 )),
                 f"받은 양: {point.y():.1f} KB/s"
             )
-
