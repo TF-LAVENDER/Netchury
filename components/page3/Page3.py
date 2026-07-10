@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from PySide6.QtWidgets import QWidget, QTableView, QHeaderView
 from PySide6.QtGui import QStandardItemModel, QStandardItem
-from utils import IS_WINDOWS, load_ui_file, resource_path
+from utils import IS_WINDOWS, load_ui_file, resource_path, writable_path
 
 class Page3(QWidget):
     def __init__(self):
@@ -58,7 +58,7 @@ class Page3(QWidget):
     def load_logs_from_csv(self):
         """오늘 날짜의 로그 파일에서 로그 데이터 로드"""
         current_date = datetime.now().strftime("%Y-%m-%d")
-        csv_path = resource_path(f"logs/{current_date}.csv")
+        csv_path = writable_path(f"logs/{current_date}.csv")
         
         if os.path.exists(csv_path):
             with open(csv_path, mode="r", newline="", encoding="utf-8") as file:
@@ -81,11 +81,11 @@ class Page3(QWidget):
             date_str = datetime.now().strftime("%Y-%m-%d")
         
         # logs 디렉토리가 없으면 생성
-        logs_dir = resource_path("logs")
+        logs_dir = writable_path("logs")
         if not os.path.exists(logs_dir):
             os.makedirs(logs_dir)
         
-        csv_path = resource_path(f"logs/{date_str}.csv")
+        csv_path = writable_path(f"logs/{date_str}.csv")
         
         with open(csv_path, mode="w", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)

@@ -21,6 +21,19 @@ def resource_path(relative_path):
     return path.replace("\\", "/") if IS_WINDOWS else path
 
 
+def writable_path(relative_path):
+    """Return a persistent writable path without changing the macOS layout."""
+    if not IS_WINDOWS:
+        return resource_path(relative_path)
+
+    base_path = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
+    path = os.path.abspath(os.path.join(base_path, "Netchury", relative_path))
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    return path
+
+
 def configure_application(app: QApplication):
     """Use macOS-like logical font sizing only on Windows."""
     if not IS_WINDOWS:

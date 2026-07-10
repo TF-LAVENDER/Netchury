@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QWidget, QTableView, QHeaderView
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 from components.page2.sub.NetworkPopup import NetworkPopup
 from util.daemon.daemon import page3_instance
-from utils import IS_WINDOWS, load_ui_file, resource_path
+from utils import IS_WINDOWS, load_ui_file, resource_path, writable_path
 import subprocess
 import ipaddress
 
@@ -120,7 +120,7 @@ class Page2(QWidget):
             self.page3_instance.add_log_entry(["사용자 활동", datetime.now().strftime("%H:%M:%S"), row_data[2], row_data[1], "", "", f"사용자 허용 규칙 추가 - {row_data[2]}:{row_data[1]}({row_data[0]})"])
 
     def save_to_csvs(self):
-        with open(resource_path("data/blocked.csv"), mode="w", newline="", encoding="utf-8") as file:
+        with open(writable_path("data/blocked.csv"), mode="w", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
             for row in range(self.model_blocked.rowCount()):
                 row_values = [
@@ -128,7 +128,7 @@ class Page2(QWidget):
                     for col in range(self.model_blocked.columnCount())
                 ]
                 writer.writerow(row_values)
-        with open(resource_path("data/allowed.csv"), mode="w", newline="", encoding="utf-8") as file:
+        with open(writable_path("data/allowed.csv"), mode="w", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
             for row in range(self.model_allowed.rowCount()):
                 row_values = [
@@ -139,8 +139,8 @@ class Page2(QWidget):
 
     def load_from_csvs(self):
         # blocked
-        if os.path.exists(resource_path("data/blocked.csv")):
-            with open(resource_path("data/blocked.csv"), mode="r", newline="", encoding="utf-8") as file:
+        if os.path.exists(writable_path("data/blocked.csv")):
+            with open(writable_path("data/blocked.csv"), mode="r", newline="", encoding="utf-8") as file:
                 reader = csv.reader(file)
                 idx = 1
                 for row in reader:
@@ -153,8 +153,8 @@ class Page2(QWidget):
                     self.ui.blockedTableView.setRowHeight(self.model_blocked.rowCount() - 1, 40)
                     idx += 1
         # allowed
-        if os.path.exists(resource_path("data/allowed.csv")):
-            with open(resource_path("data/allowed.csv"), mode="r", newline="", encoding="utf-8") as file:
+        if os.path.exists(writable_path("data/allowed.csv")):
+            with open(writable_path("data/allowed.csv"), mode="r", newline="", encoding="utf-8") as file:
                 reader = csv.reader(file)
                 idx = 1
                 for row in reader:
@@ -229,10 +229,61 @@ class Page2(QWidget):
 def get_pfctl_rules_file():
     """macOS 방화벽 규칙 파일 경로 반환"""
     return "/tmp/netchury_rules.pf"
+
+
+def _windows_firewall_rule_name(port, ip_address, protocol):
+    safe_ip = ip_address or "any"
+    safe_port = port or "*"
+    return f"Netchury Block {protocol.upper()} {safe_ip} {safe_port}"
+
+
+def _run_windows_firewall(action, port, ip_address, protocol):
+    proto = protocol.upper() if protocol.upper() in {"TCP", "UDP"} else "ANY"
+    rule_name = _windows_firewall_rule_name(port, ip_address, proto)
+
+    if action == "add":
+        command = [
+            "netsh", "advfirewall", "firewall", "add", "rule",
+            f"name={rule_name}", "dir=in", "action=block", f"protocol={proto}",
+            f"remoteip={ip_address or 'any'}", "profile=any", "enable=yes",
+        ]
+        if port and port != "*" and proto in {"TCP", "UDP"}:
+            command.append(f"localport={port}")
+    else:
+        command = [
+            "netsh", "advfirewall", "firewall", "delete", "rule",
+            f"name={rule_name}", "dir=in",
+        ]
+
+    creation_flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            errors="replace",
+            check=False,
+            creationflags=creation_flags,
+        )
+    except OSError as error:
+        print(f"Windows 방화벽 명령 실행 실패: {error}")
+        return False
+
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout).strip()
+        print(f"Windows 방화벽 규칙 {action} 실패: {detail}")
+        return False
+
+    print(f"Windows 방화벽 규칙 {action} 완료: {rule_name}")
+    return True
+
 def add_firewall_rule(port, ip_address=None, protocol="TCP"):
     """
     macOS 방화벽 규칙 추가 (CIDR 지원)
     """
+    if IS_WINDOWS:
+        return _run_windows_firewall("add", port, ip_address, protocol)
+
     import ipaddress
     import os
     
@@ -291,6 +342,9 @@ def delete_firewall_rule(port, ip_address=None, protocol="TCP"):
     """
     macOS 방화벽 규칙 삭제 (CIDR 지원)
     """
+    if IS_WINDOWS:
+        return _run_windows_firewall("delete", port, ip_address, protocol)
+
     # 프로토콜 변환 (TCP -> tcp, UDP -> udp)
     proto = protocol.lower()
     port_clause = "" if not port or port == "*" else f" port {port}"

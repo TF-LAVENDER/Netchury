@@ -13,6 +13,28 @@ from utils import load_ui_file, resource_path
 WAN_IFACE = "en0"
 LAN_IFACE = "en1"
 
+
+def resolve_network_interfaces():
+    """Keep the macOS mapping and discover active adapters on Windows."""
+    if not sys.platform.startswith("win"):
+        return WAN_IFACE, LAN_IFACE
+
+    stats = psutil.net_if_stats()
+    counters = psutil.net_io_counters(pernic=True)
+    candidates = [
+        name
+        for name, stat in stats.items()
+        if stat.isup and name.lower() not in {"loopback", "lo"} and name in counters
+    ]
+    candidates.sort(
+        key=lambda name: counters[name].bytes_sent + counters[name].bytes_recv,
+        reverse=True,
+    )
+    return (
+        candidates[0] if candidates else None,
+        candidates[1] if len(candidates) > 1 else None,
+    )
+
 class Page1(QWidget):
     def __init__(self):
         super().__init__()
@@ -29,6 +51,7 @@ class Page1(QWidget):
         self.total_wan_recv = 0
         self.total_lan_sent = 0
         self.total_lan_recv = 0
+        self.wan_iface, self.lan_iface = resolve_network_interfaces()
 
         self.chart = QChart()
         self.chart.addSeries(self.series_sent)
@@ -79,8 +102,8 @@ class Page1(QWidget):
         self.prev_sent, self.prev_recv = self.get_network_bytes()
         self.x = 0
 
-        self.prev_wan_sent, self.prev_wan_recv = self.get_network_bytes_by_iface(WAN_IFACE)
-        self.prev_lan_sent, self.prev_lan_recv = self.get_network_bytes_by_iface(LAN_IFACE)
+        self.prev_wan_sent, self.prev_wan_recv = self.get_network_bytes_by_iface(self.wan_iface)
+        self.prev_lan_sent, self.prev_lan_recv = self.get_network_bytes_by_iface(self.lan_iface)
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_chart)
@@ -127,7 +150,7 @@ class Page1(QWidget):
 
     def get_network_bytes_by_iface(self, iface_name):
         counters = psutil.net_io_counters(pernic=True)
-        if iface_name in counters:
+        if iface_name and iface_name in counters:
             return counters[iface_name].bytes_sent, counters[iface_name].bytes_recv
         else:
             return 0, 0
@@ -138,11 +161,11 @@ class Page1(QWidget):
         sent_speed = (sent - self.prev_sent) / 1024
         recv_speed = (recv - self.prev_recv) / 1024
 
-        wan_sent, wan_recv = self.get_network_bytes_by_iface(WAN_IFACE)
+        wan_sent, wan_recv = self.get_network_bytes_by_iface(self.wan_iface)
         wan_sent_speed = (wan_sent - self.prev_wan_sent) / 1024
         wan_recv_speed = (wan_recv - self.prev_wan_recv) / 1024
 
-        lan_sent, lan_recv = self.get_network_bytes_by_iface(LAN_IFACE)
+        lan_sent, lan_recv = self.get_network_bytes_by_iface(self.lan_iface)
         lan_sent_speed = (lan_sent - self.prev_lan_sent) / 1024
         lan_recv_speed = (lan_recv - self.prev_lan_recv) / 1024
 

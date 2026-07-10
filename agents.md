@@ -12,7 +12,7 @@ Netchury는 Lavender 팀이 만든 개인 사용자용 네트워크 보안 관�
 - 네트워크 사용량을 실시간으로 표시합니다.
 - IP 차단/허용 목록을 CSV로 관리합니다.
 - 이상 징후와 사용자 활동을 날짜별 CSV 로그로 저장합니다.
-- macOS 환경에서 `pfctl`, `arp`, `nettop` 같은 시스템 명령을 사용할 수 있습니다.
+- macOS와 Windows를 지원하며, OS별 방화벽 및 네트워크 명령은 조건부 분기로 분리되어 있습니다.
 
 ## 주요 기술 스택
 
@@ -21,7 +21,7 @@ Netchury는 Lavender 팀이 만든 개인 사용자용 네트워크 보안 관�
 - Network metrics: `psutil`
 - Data storage: CSV files
 - Packaging: PyInstaller
-- Target OS behavior: 현재 코드는 macOS 의존 로직이 많음
+- Target OS behavior: macOS 동작을 기준으로 유지하면서 Windows 호환 계층을 적용
 
 `requirements.txt`의 핵심 의존성:
 
@@ -47,6 +47,8 @@ Netchury는 Lavender 팀이 만든 개인 사용자용 네트워크 보안 관�
 
 - `utils.py`
   - `resource_path(relative_path)`: PyInstaller `_MEIPASS` 환경과 일반 실행 환경 모두에서 리소스 경로를 계산합니다.
+  - `writable_path(relative_path)`: Windows에서는 `%LOCALAPPDATA%/Netchury`, macOS에서는 기존 프로젝트 경로를 사용합니다.
+  - `configure_application(app)`: Windows에서만 폰트 크기와 기본 한글 폰트를 보정합니다.
   - `load_ui_file(path)`: `QUiLoader`로 `.ui` 파일을 동적으로 로드합니다.
 
 리소스 경로를 직접 하드코딩하지 말고 가능하면 `resource_path()`를 사용하세요.
@@ -65,7 +67,8 @@ Netchury는 Lavender 팀이 만든 개인 사용자용 네트워크 보안 관�
 
 - `psutil.net_io_counters()`로 전체 송수신량을 측정합니다.
 - `QSplineSeries`, `QChart`, `QChartView`로 최근 60초 그래프를 표시합니다.
-- `WAN_IFACE = "en0"`, `LAN_IFACE = "en1"` 기준으로 인터페이스별 사용량을 계산합니다.
+- macOS에서는 `WAN_IFACE = "en0"`, `LAN_IFACE = "en1"` 기준으로 인터페이스별 사용량을 계산합니다.
+- Windows에서는 활성 네트워크 어댑터를 트래픽 순으로 자동 선택합니다.
 - 1초마다 `QTimer`로 `update_chart()`를 호출합니다.
 
 주의:
@@ -73,6 +76,7 @@ Netchury는 Lavender 팀이 만든 개인 사용자용 네트워크 보안 관�
 - `en0`, `en1`은 macOS 기준 이름입니다. 다른 OS나 장비에서는 없을 수 있습니다.
 - 네트워크 카운터는 누적값 기반이므로 이전 값 갱신 순서를 조심하세요.
 - UI 요소 이름은 `.ui` 파일과 강하게 연결되어 있습니다. 위젯 objectName 변경 시 Python 코드도 같이 확인해야 합니다.
+- 굵은 `recv_send_ratio`는 macOS에서 좌우 PNG 마스크를 사용하고, Windows에서는 추가로 둥근 `QRegion` 클리핑을 적용합니다. macOS 마스크 배치와 Windows 조건 분기를 함께 유지하세요.
 
 ### Page2: IP 차단/허용 목록 관리
 
@@ -89,7 +93,7 @@ Netchury는 Lavender 팀이 만든 개인 사용자용 네트워크 보안 관�
 - 차단 목록과 허용 목록을 각각 `QStandardItemModel`로 관리합니다.
 - CSV 파일에서 초기 목록을 읽고 저장합니다.
 - 규칙 추가/삭제 시 Page3 로그를 추가합니다.
-- 차단 규칙 추가/삭제 시 macOS `pfctl` 명령을 실행하는 함수가 있습니다.
+- 차단 규칙 추가/삭제 시 macOS는 `pfctl`, Windows는 `netsh advfirewall`을 사용합니다.
 
 데이터 파일:
 
@@ -107,6 +111,7 @@ CSV 컬럼 구조:
 주의:
 
 - `add_firewall_rule()`과 `delete_firewall_rule()`은 `sudo pfctl`을 호출할 수 있습니다.
+- Windows 빌드는 방화벽 변경을 위해 UAC 관리자 권한을 요청합니다.
 - 에이전트는 사용자 승인 없이 실제 방화벽 명령을 실행하면 안 됩니다.
 - `get_pfctl_rules_file()`은 `/tmp/netchury_rules.pf`를 사용합니다.
 - 코드상 차단 규칙 문자열이 `pass in ...` 형태로 생성됩니다. 방화벽 정책을 수정할 때는 의도와 실제 효과를 반드시 확인하세요.
@@ -172,15 +177,15 @@ CSV 컬럼 구조:
   - 콘솔과 `data/security.log`에 로그를 남깁니다.
 - `NetworkAbuseWatcher`
   - `psutil.net_io_counters()`로 수신량 임계치 초과를 감시합니다.
-  - `nettop`으로 상위 수신 IP를 찾으려 시도합니다.
+  - macOS에서는 `nettop`, Windows에서는 `psutil.net_connections()`로 원격 IP를 찾으려 시도합니다.
   - 조건 충족 시 Page2에 자동 차단 규칙을 추가하고 Page3에 로그를 남깁니다.
 - ARP 감시 함수들
-  - `arp -a` 결과를 분석해 IP별 MAC 변경을 감지합니다.
+  - OS별 `arp -a` 출력 형식을 분석해 IP별 MAC 변경을 감지합니다.
   - 의심 IP가 허용 목록에 없고 차단 목록에도 없으면 자동 차단합니다.
 
 주의:
 
-- 데몬은 실제 시스템 명령(`arp`, `nettop`)과 네트워크 상태에 의존합니다.
+- 데몬은 실제 시스템 명령(`arp`, macOS의 `nettop`)과 네트워크 상태에 의존합니다.
 - `_abuse_watcher = NetworkAbuseWatcher(logger, threshold_kb_per_sec=1, sustain_seconds=5)`로 설정되어 있어 임계치가 매우 낮습니다. 앱 실행만으로 자동 차단 로직이 쉽게 작동할 수 있습니다.
 - `page2_instance`, `page3_instance`는 모듈 전역 변수입니다. 이 구조를 바꿀 때는 `LavenderMain.py`, `Page2.py`, `daemon.py`의 순환 참조와 초기화 순서를 같이 점검하세요.
 - 데몬의 예외 처리 중 일부는 조용히 무시됩니다. 디버깅 시 필요한 최소 범위에서 로그를 보강하세요.
@@ -198,8 +203,8 @@ CSV 컬럼 구조:
 
 주의:
 
-- 현재 `build.py`에는 Windows 스타일 경로 조합(`"\\PySide6"`)이 남아 있지만, 앱 코드는 macOS 의존 동작이 많습니다.
-- 빌드 설정을 수정할 때는 실제 타깃 OS를 먼저 확인하세요.
+- macOS 빌드는 기존 `icon.icns`를 사용하고, Windows 빌드는 `--uac-admin` 매니페스트를 사용합니다.
+- 플랫폼 분기를 수정할 때 macOS의 기존 동작 경로가 바뀌지 않는지 확인하세요.
 - 빌드 산출물(`build/`, `dist/`, `*.spec`)은 `.gitignore` 대상입니다.
 
 ## UI 파일과 생성 파일 정책
@@ -239,6 +244,7 @@ CSV 컬럼 구조:
 에이전트는 다음 작업을 사용자 승인 없이 수행하지 마세요.
 
 - `sudo pfctl` 실행
+- `netsh advfirewall` 실행
 - 방화벽 규칙 추가/삭제
 - `/tmp/netchury_rules.pf` 삭제 또는 덮어쓰기
 - 실제 네트워크 차단 테스트

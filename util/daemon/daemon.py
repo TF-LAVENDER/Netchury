@@ -7,16 +7,19 @@ from typing import Optional, Callable, Dict, List
 from datetime import datetime
 from collections import defaultdict, deque
 import os
+import sys
+
+from utils import writable_path
 
 # =========================
 # 통합 로거 클래스
 # =========================
 class SecurityLogger:
-    def __init__(self, page2_instance=None, page3_instance=None, log_file="data/security.log"):
+    def __init__(self, page2_instance=None, page3_instance=None, log_file=None):
         self.page3_instance = page3_instance
         self.page2_instance = page2_instance
-        self.log_file = log_file
-        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+        self.log_file = log_file or writable_path("data/security.log")
+        os.makedirs(os.path.dirname(self.log_file), exist_ok=True)
 
     def log(self, message: str, level: str = "INFO", page3_data: Optional[List[str]] = None):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -97,6 +100,21 @@ class NetworkAbuseWatcher:
         self._cooldown_seconds = 300
 
     def _get_top_incoming_ip(self) -> Optional[str]:
+        if sys.platform.startswith("win"):
+            try:
+                remote_counts = defaultdict(int)
+                for connection in psutil.net_connections(kind="inet"):
+                    if connection.status != psutil.CONN_ESTABLISHED or not connection.raddr:
+                        continue
+                    remote_ip = connection.raddr.ip
+                    if remote_ip not in {"127.0.0.1", "::1"}:
+                        remote_counts[remote_ip] += 1
+                if not remote_counts:
+                    return None
+                return max(remote_counts.items(), key=lambda item: item[1])[0]
+            except (OSError, psutil.Error):
+                return None
+
         try:
             cmd = ["nettop", "-P", "-L", "1", "-x", "-J", "bytes_in,tcpsrc,udpsrc"]
             proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
@@ -161,15 +179,24 @@ blocked_ips = set()
 
 def get_arp_table() -> Dict[str, str]:
     try:
-        result = subprocess.run(["arp", "-a"], capture_output=True, text=True)
+        kwargs = {"capture_output": True, "text": True, "errors": "replace"}
+        if sys.platform.startswith("win"):
+            kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        result = subprocess.run(["arp", "-a"], **kwargs)
         if result.returncode != 0:
             return {}
         arp_table = {}
         for line in result.stdout.strip().split("\n"):
-            m = re.search(r"\((\d+\.\d+\.\d+\.\d+)\)\s+at\s+([a-fA-F0-9:]{17})", line)
+            if sys.platform.startswith("win"):
+                m = re.search(
+                    r"^\s*(\d+\.\d+\.\d+\.\d+)\s+([a-fA-F0-9-]{17})\s+",
+                    line,
+                )
+            else:
+                m = re.search(r"\((\d+\.\d+\.\d+\.\d+)\)\s+at\s+([a-fA-F0-9:]{17})", line)
             if m:
                 ip, mac = m.groups()
-                arp_table[ip] = mac.upper()
+                arp_table[ip] = mac.replace("-", ":").upper()
         return arp_table
     except Exception:
         return {}
