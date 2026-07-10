@@ -23,6 +23,20 @@ class Page2(QWidget):
         self.ui.blockedButton.setFlat(True)
         self.ui.allowedButton.setFlat(True)
 
+        if IS_WINDOWS:
+            self.ui.blockedButton.setStyleSheet(
+                f"border-image: url('{resource_path('components/page2/images/blocked_on.png')}'); margin: 0;"
+            )
+            self.ui.allowedButton.setStyleSheet(
+                f"border-image: url('{resource_path('components/page2/images/allowed_off.png')}'); margin: 0;"
+            )
+            self.ui.addButton.setStyleSheet(
+                f"border-image: url('{resource_path('components/page2/images/add_rule.png')}'); margin: 0;"
+            )
+            self.ui.delButton.setStyleSheet(
+                f"border-image: url('{resource_path('components/page2/images/delete_rule.png')}'); margin: 0;"
+            )
+
         self.model_blocked = QStandardItemModel(0, 5)
         self.model_blocked.setHorizontalHeaderLabels(["", "프로토콜", "포트", "IP", "비고"])
         self.model_allowed = QStandardItemModel(0, 5)

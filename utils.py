@@ -12,9 +12,13 @@ _FONT_SIZE_RESOLVE_MASK = 0x02
 
 
 def resource_path(relative_path):
-    if hasattr(sys, "_MEIPASS"):
-        return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.abspath(relative_path)
+    """Return an absolute resource path usable by Python and Qt stylesheets."""
+    base_path = sys._MEIPASS if hasattr(sys, "_MEIPASS") else os.getcwd()
+    path = os.path.abspath(os.path.join(base_path, relative_path))
+
+    # Qt stylesheet URLs treat a backslash as an escape on Windows.
+    # Forward slashes are accepted by both Qt and Python's Windows file APIs.
+    return path.replace("\\", "/") if IS_WINDOWS else path
 
 
 def configure_application(app: QApplication):
