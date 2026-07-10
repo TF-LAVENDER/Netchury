@@ -1,9 +1,6 @@
 
-import os
-import site
+import platform
 from PyInstaller.__main__ import run
-
-pyside6_dir = site.getsitepackages()[0] + "\\PySide6"
 
 opts = [
     'LavenderMain.py',
@@ -13,7 +10,14 @@ opts = [
     '--add-data', 'MainWindow.ui:.',
     '--add-data', 'images:images',
     '--add-data', 'components:components',
-    '-i', 'icon.icns'
 ]
+
+if platform.system() == 'Darwin':
+    # Keep the existing macOS bundle icon and build behavior.
+    opts.extend(['-i', 'icon.icns'])
+elif platform.system() == 'Windows':
+    # Windows Firewall changes require an elevated process. PyInstaller adds the
+    # standard UAC manifest so the packaged app requests it once at startup.
+    opts.append('--uac-admin')
 
 run(opts)
