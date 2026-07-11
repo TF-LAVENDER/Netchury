@@ -43,7 +43,7 @@ class Ui_MainWindow(object):
         self.menuButton3.setStyleSheet(u"border-image: url(\"images/menu3_off.png\")")
         self.horizontalLayoutWidget = QWidget(self.centralwidget)
         self.horizontalLayoutWidget.setObjectName(u"horizontalLayoutWidget")
-        self.horizontalLayoutWidget.setGeometry(QRect(0, 45, 960, 545))
+        self.horizontalLayoutWidget.setGeometry(QRect(0, 45, 960, 500))
         self.contentArea = QHBoxLayout(self.horizontalLayoutWidget)
         self.contentArea.setSpacing(0)
         self.contentArea.setObjectName(u"contentArea")
@@ -111,4 +111,3 @@ class Ui_MainWindow(object):
         self.minimizeButton.setText("")
         self.dummyButton.setText("")
     # retranslateUi
-

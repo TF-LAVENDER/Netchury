@@ -32,9 +32,9 @@ class Page3(QWidget):
         self.ui.logsTableView.setColumnWidth(0, 100)   # 유형
         self.ui.logsTableView.setColumnWidth(1, 90)  # 날짜
         self.ui.logsTableView.setColumnWidth(2, 140)  # 송신 주소
-        self.ui.logsTableView.setColumnWidth(3, 60)   # 송신 포트
+        self.ui.logsTableView.setColumnWidth(3, 84)   # 송신 포트
         self.ui.logsTableView.setColumnWidth(4, 140)  # 수신 주소
-        self.ui.logsTableView.setColumnWidth(5, 60)   # 수신 포트
+        self.ui.logsTableView.setColumnWidth(5, 84)   # 수신 포트
         self.ui.logsTableView.horizontalHeader().setStretchLastSection(True)  # 비고
 
         self.load_logs_from_csv()
