@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QToolTip
 from PySide6.QtCharts import QChart, QChartView, QSplineSeries
 from PySide6.QtCore import QTimer, QPointF, QMargins, QPropertyAnimation, QEasingCurve, QRectF
 
-from utils import load_ui_file, resource_path
+from utils import IS_WINDOWS, load_ui_file, resource_path
 
 WAN_IFACE = "en0"
 LAN_IFACE = "en1"
@@ -41,6 +41,7 @@ class Page1(QWidget):
 
         self.ui = load_ui_file(resource_path("components/page1/page1.ui"))
         self.setLayout(self.ui.layout())
+        self.configure_windows_region_labels()
 
         self.series_sent = QSplineSeries(name="보낸 데이터 (KB/s)")
         self.series_recv = QSplineSeries(name="받은 데이터 (KB/s)")
@@ -143,6 +144,18 @@ class Page1(QWidget):
         # smooth the integer QRegion edge and preserve the current macOS design.
         self.ui.left_radius_mask.raise_()
         self.ui.right_radius_mask.raise_()
+
+    def configure_windows_region_labels(self):
+        """Restore the fixed-size regional labels after Windows font fitting."""
+        if not IS_WINDOWS:
+            return
+
+        for label_name in ("WAN", "LAN"):
+            label = getattr(self.ui, label_name)
+            font = label.font()
+            font.setPixelSize(16)
+            label.setFont(font)
+            label.resize(48, 24)
 
     def get_network_bytes(self):
         counters = psutil.net_io_counters()
