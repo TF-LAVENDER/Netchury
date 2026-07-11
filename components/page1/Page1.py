@@ -160,6 +160,9 @@ class Page1(QWidget):
             label.setGeometry(0, row_y, 58, 24)
 
             value_label = getattr(self.ui, f"{label_name}_LABEL")
+            value_font = value_label.font()
+            value_font.setPixelSize(font.pixelSize())
+            value_label.setFont(value_font)
             value_label.setGeometry(62, row_y, 64, 24)
             value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
