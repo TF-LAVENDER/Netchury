@@ -3,7 +3,7 @@
 import sys
 import os
 from PySide6.QtWidgets import QApplication, QWidget, QMainWindow, QHBoxLayout
-from PySide6.QtGui import QPainter, QPainterPath, QColor
+from PySide6.QtGui import QPainter, QPainterPath, QColor, QRegion
 from PySide6.QtCore import Qt
 from components.page1.Page1 import Page1
 from components.page2.Page2 import Page2
@@ -40,6 +40,7 @@ class MainWindow(QMainWindow):
         if self.content_widget is None:
             raise RuntimeError("horizontalLayoutWidget 위젯을 찾을 수 없습니다. .ui 파일 확인 필요.")
         self.content_container = self.content_widget.layout()
+        self.update_content_mask()
         print(self.content_container)
 
         self.page1 = Page1()
@@ -73,6 +74,27 @@ class MainWindow(QMainWindow):
         path.addRoundedRect(r, 10, 10)
 
         painter.fillPath(path, QColor(34, 34, 34))
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, "content_widget"):
+            self.update_content_mask()
+
+    def update_content_mask(self):
+        """Keep table rows inside the window's rounded bottom corners."""
+        rect = self.content_widget.rect()
+        radius = 10
+
+        path = QPainterPath()
+        path.moveTo(rect.left(), rect.top())
+        path.lineTo(rect.right(), rect.top())
+        path.lineTo(rect.right(), rect.bottom() - radius)
+        path.quadTo(rect.right(), rect.bottom(), rect.right() - radius, rect.bottom())
+        path.lineTo(rect.left() + radius, rect.bottom())
+        path.quadTo(rect.left(), rect.bottom(), rect.left(), rect.bottom() - radius)
+        path.closeSubpath()
+
+        self.content_widget.setMask(QRegion(path.toFillPolygon().toPolygon()))
 
     def clear_content(self):
         for i in reversed(range(self.content_container.count())):
