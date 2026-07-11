@@ -3,10 +3,10 @@
 import sys
 
 import psutil
-from PySide6.QtGui import QPen, QColor,QBrush, QPainter, QPainterPath, QRegion
+from PySide6.QtGui import QPen, QColor,QBrush, QPainter, QPainterPath, QRegion, QFontMetrics
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QToolTip
 from PySide6.QtCharts import QChart, QChartView, QSplineSeries
-from PySide6.QtCore import QTimer, QPointF, QMargins, QPropertyAnimation, QEasingCurve, QRectF
+from PySide6.QtCore import Qt, QTimer, QPointF, QMargins, QPropertyAnimation, QEasingCurve, QRectF
 
 from utils import IS_WINDOWS, load_ui_file, resource_path
 
@@ -150,12 +150,18 @@ class Page1(QWidget):
         if not IS_WINDOWS:
             return
 
-        for label_name in ("WAN", "LAN"):
+        for label_name, row_y in (("WAN", 57), ("LAN", 87)):
             label = getattr(self.ui, label_name)
             font = label.font()
             font.setPixelSize(16)
+            while font.pixelSize() > 12 and QFontMetrics(font).horizontalAdvance(label.text()) > 58:
+                font.setPixelSize(font.pixelSize() - 1)
             label.setFont(font)
-            label.resize(48, 24)
+            label.setGeometry(0, row_y, 58, 24)
+
+            value_label = getattr(self.ui, f"{label_name}_LABEL")
+            value_label.setGeometry(62, row_y, 64, 24)
+            value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
     def get_network_bytes(self):
         counters = psutil.net_io_counters()
