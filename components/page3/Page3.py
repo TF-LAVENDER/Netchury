@@ -10,6 +10,7 @@ class Page3(QWidget):
         super().__init__()
         self.ui = load_ui_file(resource_path("components/page3/page3.ui"))
         self.setLayout(self.ui.layout())
+        self.row_height = 40
 
        # 테이블 초기화 시
         self.model_logs = QStandardItemModel(0, 7)
@@ -23,6 +24,7 @@ class Page3(QWidget):
         header_height = 30
         if IS_WINDOWS:
             header_height = max(header_height, self.ui.logsTableView.fontMetrics().height() + 16)
+            self.row_height = max(self.row_height, self.ui.logsTableView.fontMetrics().height() + 18)
         self.ui.logsTableView.horizontalHeader().setFixedHeight(header_height)
         self.ui.logsTableView.verticalHeader().hide()
 
@@ -49,7 +51,7 @@ class Page3(QWidget):
         self.model_logs.insertRow(0, items)
         
         # 행 높이 설정
-        self.ui.logsTableView.setRowHeight(0, 40)
+        self.ui.logsTableView.setRowHeight(0, self.row_height)
         
         # CSV 저장
         self.save_logs_to_csv(datetime.now().strftime("%Y-%m-%d"))
@@ -72,7 +74,7 @@ class Page3(QWidget):
                         items = [QStandardItem(field) for field in display_row]
                         self.model_logs.appendRow(items)
                         # 행 높이 설정
-                        self.ui.logsTableView.setRowHeight(self.model_logs.rowCount() - 1, 40)
+                        self.ui.logsTableView.setRowHeight(self.model_logs.rowCount() - 1, self.row_height)
             self.ui.logsTableView.repaint()
 
     def save_logs_to_csv(self, date_str=None):
