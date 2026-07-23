@@ -83,19 +83,17 @@ class MainWindow(QMainWindow):
 
         button_width = 40
         button_height = 45
-        right_margin = 20
-        maximize_slot_width = button_width
         minimize_icon = resource_path("images/windows_minimize.svg")
         close_icon = resource_path("images/windows_close.svg")
 
         self.ui.minimizeButton.setGeometry(
-            self.width() - right_margin - button_width * 2 - maximize_slot_width,
+            self.width() - button_width * 2,
             0,
             button_width,
             button_height,
         )
         self.ui.exitButton.setGeometry(
-            self.width() - right_margin - button_width,
+            self.width() - button_width,
             0,
             button_width,
             button_height,
