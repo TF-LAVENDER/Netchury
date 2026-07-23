@@ -3,8 +3,8 @@
 import sys
 import os
 from PySide6.QtWidgets import QApplication, QWidget, QMainWindow, QHBoxLayout
-from PySide6.QtGui import QPainter, QPainterPath, QColor, QRegion
-from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon, QPainter, QPainterPath, QColor, QRegion
+from PySide6.QtCore import QSize, Qt
 from components.page1.Page1 import Page1
 from components.page2.Page2 import Page2
 from components.page3.Page3 import Page3
@@ -81,14 +81,31 @@ class MainWindow(QMainWindow):
         if not IS_WINDOWS:
             return
 
-        button_width = 44
+        button_width = 40
         button_height = 45
+        right_margin = 20
+        maximize_slot_width = button_width
         minimize_icon = resource_path("images/windows_minimize.svg")
         close_icon = resource_path("images/windows_close.svg")
 
-        self.ui.minimizeButton.setGeometry(self.width() - button_width * 2, 0, button_width, button_height)
-        self.ui.exitButton.setGeometry(self.width() - button_width, 0, button_width, button_height)
+        self.ui.minimizeButton.setGeometry(
+            self.width() - right_margin - button_width * 2 - maximize_slot_width,
+            0,
+            button_width,
+            button_height,
+        )
+        self.ui.exitButton.setGeometry(
+            self.width() - right_margin - button_width,
+            0,
+            button_width,
+            button_height,
+        )
         self.ui.dummyButton.hide()
+
+        self.ui.minimizeButton.setIcon(QIcon(minimize_icon))
+        self.ui.minimizeButton.setIconSize(QSize(15, 15))
+        self.ui.exitButton.setIcon(QIcon(close_icon))
+        self.ui.exitButton.setIconSize(QSize(12, 13))
 
         self.ui.minimizeButton.setCursor(Qt.ArrowCursor)
         self.ui.exitButton.setCursor(Qt.ArrowCursor)
@@ -101,7 +118,6 @@ class MainWindow(QMainWindow):
             QPushButton {{
                 background: transparent;
                 border: none;
-                image: url('{minimize_icon}');
             }}
             QPushButton:hover {{ background-color: #3a3a3a; }}
             QPushButton:pressed {{ background-color: #4a4a4a; }}
@@ -111,7 +127,6 @@ class MainWindow(QMainWindow):
                 background: transparent;
                 border: none;
                 border-top-right-radius: 10px;
-                image: url('{close_icon}');
             }}
             QPushButton:hover {{ background-color: #c42b1c; }}
             QPushButton:pressed {{ background-color: #8f1d13; }}
