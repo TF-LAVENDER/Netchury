@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt
 from components.page1.Page1 import Page1
 from components.page2.Page2 import Page2
 from components.page3.Page3 import Page3
-from utils import configure_application, load_ui_file, resource_path
+from utils import IS_WINDOWS, configure_application, load_ui_file, resource_path
 from util.daemon.daemon import daemon, network_daemon, page3_instance
 import util.daemon.daemon as daemon_module
 
@@ -33,6 +33,7 @@ class MainWindow(QMainWindow):
         self.ui.setStyleSheet("background: transparent;")
 
         self.setFixedSize(960, 545)
+        self.configure_window_controls()
 
         self.show()
 
@@ -74,6 +75,49 @@ class MainWindow(QMainWindow):
         path.addRoundedRect(r, 10, 10)
 
         painter.fillPath(path, QColor(34, 34, 34))
+
+    def configure_window_controls(self):
+        """Use Windows title-bar controls without changing the macOS layout."""
+        if not IS_WINDOWS:
+            return
+
+        button_width = 44
+        button_height = 45
+        minimize_icon = resource_path("images/windows_minimize.svg")
+        close_icon = resource_path("images/windows_close.svg")
+
+        self.ui.minimizeButton.setGeometry(self.width() - button_width * 2, 0, button_width, button_height)
+        self.ui.exitButton.setGeometry(self.width() - button_width, 0, button_width, button_height)
+        self.ui.dummyButton.hide()
+
+        self.ui.minimizeButton.setCursor(Qt.ArrowCursor)
+        self.ui.exitButton.setCursor(Qt.ArrowCursor)
+        self.ui.minimizeButton.setToolTip("최소화")
+        self.ui.exitButton.setToolTip("닫기")
+        self.ui.minimizeButton.setAccessibleName("최소화")
+        self.ui.exitButton.setAccessibleName("닫기")
+
+        self.ui.minimizeButton.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent;
+                border: none;
+                image: url('{minimize_icon}');
+            }}
+            QPushButton:hover {{ background-color: #3a3a3a; }}
+            QPushButton:pressed {{ background-color: #4a4a4a; }}
+        """)
+        self.ui.exitButton.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent;
+                border: none;
+                border-top-right-radius: 10px;
+                image: url('{close_icon}');
+            }}
+            QPushButton:hover {{ background-color: #c42b1c; }}
+            QPushButton:pressed {{ background-color: #8f1d13; }}
+        """)
+        self.ui.minimizeButton.raise_()
+        self.ui.exitButton.raise_()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
